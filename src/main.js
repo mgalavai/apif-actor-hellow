@@ -1,6 +1,6 @@
 import { Actor } from 'apify';
 import crypto from 'crypto';
-import got from 'got';
+import { gotScraping } from 'got-scraping';
 import * as cheerio from 'cheerio';
 
 await Actor.init();
@@ -101,12 +101,17 @@ for (const platform of PLATFORMS) {
   const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchTemplate)}&hl=en&num=100`;
 
   try {
-    const response = await got(searchUrl, {
-      agent: {
-        https: proxyConfiguration.newProxyUrl(),
-      },
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    const response = await gotScraping({
+      url: searchUrl,
+      proxyUrl: await proxyConfiguration.newUrl(),
+      headerGeneratorOptions: {
+        browsers: [
+          { name: 'chrome', minVersion: 87 },
+          { name: 'firefox', minVersion: 80 },
+          { name: 'safari', minVersion: 13 },
+        ],
+        devices: ['desktop'],
+        locales: ['en-US'],
       },
       retry: { limit: 3 },
     });
@@ -126,8 +131,6 @@ for (const platform of PLATFORMS) {
     console.log(`Found ${searchResults.length} potential results for ${platform}.`);
 
     for (const item of searchResults) {
-      if (!item.url) continue;
-
       const url = normalizeUrl(item.url);
 
       // Validation: Ensure the URL is actually on the target platform and not a Google link
