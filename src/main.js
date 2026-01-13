@@ -13,6 +13,24 @@ const {
   country = 'US',
 } = input;
 
+// --- Cost Stoppers (Budget Safety) ---
+const ACTOR_START_COST = 0.00005;
+const COST_PER_RESULT = 0.00001;
+
+const maxTotalChargeUsd = process.env.APIFY_MAX_TOTAL_CHARGE_USD
+  ? Number(process.env.APIFY_MAX_TOTAL_CHARGE_USD)
+  : null;
+
+let estimatedCost = ACTOR_START_COST;
+let resultsEmitted = 0;
+
+function canEmitAnotherResult() {
+  if (!maxTotalChargeUsd) return true;
+  const nextCost = estimatedCost + COST_PER_RESULT;
+  return nextCost <= maxTotalChargeUsd;
+}
+// -------------------------------------
+
 if (!query) {
   await Actor.fail('Input "query" is required');
 }
@@ -63,15 +81,14 @@ if (!forceFresh) {
   }
 }
 
-const results = [];
+const finalResults = [];
 const seenUrls = new Set();
+let limitReached = false;
 
-// Build all queries first to call the scraper once if possible, 
-// but calling platform by platform allows better logging and control.
 for (const platform of PLATFORMS) {
+  if (limitReached) break;
   console.log(`Searching jobs on ${platform}...`);
 
-  // Construct Google Dork
   const searchTemplate = `site:${platform} "${query}" "${location}"`;
 
   try {
@@ -81,11 +98,6 @@ for (const platform of PLATFORMS) {
       resultsPerPage: maxResultsPerSource,
       mobileResults: false,
       type: 'SEARCH',
-      // Google time filter: qdr:dX where X is d (day), w (week), m (month)
-      // We'll append it to the queries if we can, but the actor usually handles it via its own params.
-      // For apify/google-search-scraper, we can try to use 'extraParams' or similar if supported.
-      // A common way is to just add it to the query or use the 'customData' if the actor supports it.
-      // Here we use the 'timeRange' if available, otherwise we just build the query.
     });
 
     if (run.status !== 'SUCCEEDED') {
@@ -102,22 +114,25 @@ for (const platform of PLATFORMS) {
       const url = normalizeUrl(item.url);
       if (seenUrls.has(url)) continue;
 
-      // Extract company from title or description if possible
-      // Most ATS URLs have company name in subdomain or path
+      if (!canEmitAnotherResult()) {
+        console.log('Cost limit reached ($' + maxTotalChargeUsd + '). Stopping early.');
+        limitReached = true;
+        break;
+      }
+
+      // Extract company from URL
       let company = 'Unknown';
       try {
         const parsedUrl = new URL(url);
         const hostParts = parsedUrl.hostname.split('.');
         if (hostParts.length > 2) {
-          company = hostParts[0]; // e.g., 'companyname.greenhouse.io'
+          company = hostParts[0];
         } else if (parsedUrl.pathname.split('/').length > 1) {
-          company = parsedUrl.pathname.split('/')[1]; // e.g., 'lever.co/companyname'
+          company = parsedUrl.pathname.split('/')[1];
         }
-      } catch (e) {
-        // Ignore
-      }
+      } catch (e) { }
 
-      results.push({
+      finalResults.push({
         title: item.title,
         company: company.charAt(0).toUpperCase() + company.slice(1),
         location,
@@ -127,16 +142,22 @@ for (const platform of PLATFORMS) {
         foundAt: new Date().toISOString(),
         searchQuery: searchTemplate,
       });
+
       seenUrls.add(url);
+      resultsEmitted++;
+      estimatedCost += COST_PER_RESULT;
     }
   } catch (error) {
     console.error(`Failed to fetch results for ${platform}:`, error.message);
   }
 }
 
-await Actor.pushData(results);
-await cache.setValue(cacheKey, { timestamp: Date.now(), results });
+await Actor.pushData(finalResults);
+await cache.setValue(cacheKey, { timestamp: Date.now(), results: finalResults });
 
-console.log(`Successfully found and pushed ${results.length} unique job postings.`);
+console.log(`Successfully found and pushed ${finalResults.length} unique job postings.`);
+if (limitReached) {
+  console.log(`Stopped early to respect max charge limit ($${maxTotalChargeUsd}).`);
+}
 
 await Actor.exit();
