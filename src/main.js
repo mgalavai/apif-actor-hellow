@@ -98,7 +98,7 @@ for (const platform of PLATFORMS) {
   console.log(`Searching jobs on ${platform} using Google SERP Proxy...`);
 
   const searchTemplate = `site:${platform} "${query}" "${location}"`;
-  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchTemplate)}&hl=en&num=100`;
+  const searchUrl = `http://www.google.com/search?q=${encodeURIComponent(searchTemplate)}&hl=en&num=100`;
 
   try {
     const response = await gotScraping({
