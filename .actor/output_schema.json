@@ -4,48 +4,9 @@
     "properties": {
         "results": {
             "title": "Results",
-            "type": "array",
-            "description": "List of job postings found.",
-            "template": "{{links.apiDefaultDatasetUrl}}/items",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "title": "Job Title"
-                    },
-                    "company": {
-                        "type": "string",
-                        "title": "Company"
-                    },
-                    "location": {
-                        "type": "string",
-                        "title": "Location"
-                    },
-                    "applyUrl": {
-                        "type": "string",
-                        "title": "Apply URL",
-                        "format": "uri"
-                    },
-                    "platform": {
-                        "type": "string",
-                        "title": "Source Platform"
-                    },
-                    "jobId": {
-                        "type": "string",
-                        "title": "Job ID"
-                    },
-                    "foundAt": {
-                        "type": "string",
-                        "title": "Found At",
-                        "format": "date-time"
-                    },
-                    "searchQuery": {
-                        "type": "string",
-                        "title": "Search Query"
-                    }
-                }
-            }
+            "type": "string",
+            "description": "Output dataset items",
+            "template": "{{links.apiDefaultDatasetUrl}}/items"
         }
     }
 }
