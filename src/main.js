@@ -172,7 +172,13 @@ for (const platform of PLATFORMS) {
 
     console.log(`Found ${searchResults.length} potential results for ${platform}.`);
 
+    let resultsFromThisPlatform = 0;
     for (const item of searchResults) {
+      // Enforce maxResultsPerSource limit
+      if (resultsFromThisPlatform >= maxResultsPerSource) {
+        console.log(`Reached max results limit (${maxResultsPerSource}) for ${platform}.`);
+        break;
+      }
       const url = normalizeUrl(item.url);
 
       // Validation: Ensure the URL is actually on the target platform and not a Google link
@@ -225,6 +231,7 @@ for (const platform of PLATFORMS) {
 
       seenUrls.add(url);
       resultsEmitted++;
+      resultsFromThisPlatform++;
       estimatedCost += COST_PER_RESULT;
     }
   } catch (error) {
