@@ -4,7 +4,9 @@
   "type": "module",
   "dependencies": {
     "apify": "^3.0.0",
-    "crypto-js": "^4.2.0"
+    "crypto-js": "^4.2.0",
+    "got": "^13.0.0",
+    "cheerio": "^1.0.0-rc.12"
   },
   "scripts": {
     "start": "node src/main.js"

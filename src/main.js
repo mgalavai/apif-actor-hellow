@@ -1,5 +1,7 @@
 import { Actor } from 'apify';
 import crypto from 'crypto';
+import got from 'got';
+import * as cheerio from 'cheerio';
 
 await Actor.init();
 
@@ -14,8 +16,9 @@ const {
 } = input;
 
 // --- Cost Stoppers (Budget Safety) ---
+// Based on Google SERP Proxy @ $2.5/1k requests and compute usage.
 const ACTOR_START_COST = 0.00005;
-const COST_PER_RESULT = 0.00001;
+const COST_PER_RESULT = 0.0001; // Approx $0.10 per 1k results
 
 const maxTotalChargeUsd = process.env.APIFY_MAX_TOTAL_CHARGE_USD
   ? Number(process.env.APIFY_MAX_TOTAL_CHARGE_USD)
@@ -81,34 +84,48 @@ if (!forceFresh) {
   }
 }
 
+// Setup Proxy for GOOGLE_SERP
+const proxyConfiguration = await Actor.createProxyConfiguration({
+  groups: ['GOOGLE_SERP'],
+});
+
 const finalResults = [];
 const seenUrls = new Set();
 let limitReached = false;
 
 for (const platform of PLATFORMS) {
   if (limitReached) break;
-  console.log(`Searching jobs on ${platform}...`);
+  console.log(`Searching jobs on ${platform} using Google SERP Proxy...`);
 
   const searchTemplate = `site:${platform} "${query}" "${location}"`;
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchTemplate)}&hl=en&num=100`;
 
   try {
-    const run = await Actor.call('apify/google-search-scraper', {
-      queries: searchTemplate,
-      maxPagesPerQuery: 1,
-      resultsPerPage: maxResultsPerSource,
-      mobileResults: false,
-      type: 'SEARCH',
+    const response = await got(searchUrl, {
+      agent: {
+        https: proxyConfiguration.newProxyUrl(),
+      },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
+      retry: { limit: 3 },
     });
 
-    if (run.status !== 'SUCCEEDED') {
-      console.warn(`Search for ${platform} did not succeed. Status: ${run.status}`);
-      continue;
-    }
+    const $ = cheerio.load(response.body);
+    const searchResults = [];
 
-    const dataset = await Actor.openDataset(run.defaultDatasetId);
-    const { items } = await dataset.getData();
+    // Google search results are typically in div.g or inside h3 > a
+    $('div.g').each((i, el) => {
+      const title = $(el).find('h3').text();
+      const url = $(el).find('a').attr('href');
+      if (title && url) {
+        searchResults.push({ title, url });
+      }
+    });
 
-    for (const item of items) {
+    console.log(`Found ${searchResults.length} potential results for ${platform}.`);
+
+    for (const item of searchResults) {
       if (!item.url) continue;
 
       const url = normalizeUrl(item.url);
@@ -121,7 +138,7 @@ for (const platform of PLATFORMS) {
       if (seenUrls.has(url)) continue;
 
       if (!canEmitAnotherResult()) {
-        console.log('Cost limit reached ($' + maxTotalChargeUsd + '). Stopping early.');
+        console.log(`Cost limit reached ($${maxTotalChargeUsd}). Stopping early.`);
         limitReached = true;
         break;
       }
@@ -144,8 +161,9 @@ for (const platform of PLATFORMS) {
           if (pathParts.length > 0) company = pathParts[0];
         } else if (hostParts.length > 2) {
           company = hostParts[0];
-        } else if (parsedUrl.pathname.split('/').filter(p => p).length > 0) {
-          company = parsedUrl.pathname.split('/').filter(p => p)[0];
+        } else {
+          const pathParts = parsedUrl.pathname.split('/').filter(p => p);
+          if (pathParts.length > 0) company = pathParts[0];
         }
       } catch (e) { }
 
