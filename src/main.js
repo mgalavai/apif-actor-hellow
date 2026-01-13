@@ -119,14 +119,56 @@ for (const platform of PLATFORMS) {
     const $ = cheerio.load(response.body);
     const searchResults = [];
 
-    // Google search results are typically in div.g or inside h3 > a
-    $('div.g').each((i, el) => {
-      const title = $(el).find('h3').text();
-      const url = $(el).find('a').attr('href');
-      if (title && url) {
-        searchResults.push({ title, url });
+    // Debug: Log a snippet of the HTML to understand structure
+    console.log(`HTML snippet (first 500 chars): ${response.body.substring(0, 500)}`);
+
+    // Try multiple selectors for Google search results
+    // Modern Google uses different structures depending on the query type
+    const selectors = [
+      'div.g',           // Classic desktop results
+      'div[data-sokoban-container]', // New structure
+      '.Gx5Zad.fP1Qef.xpd.EtOod.pkphOe', // Another variant
+      'div[jscontroller]', // Generic fallback
+    ];
+
+    let foundAny = false;
+    for (const selector of selectors) {
+      const count = $(selector).length;
+      if (count > 0) {
+        console.log(`Selector "${selector}" found ${count} elements`);
+        foundAny = true;
+
+        $(selector).each((i, el) => {
+          // Try to find title (h3 is common across all structures)
+          const titleEl = $(el).find('h3').first();
+          const title = titleEl.text().trim();
+
+          // Try to find the link (usually an <a> tag with href)
+          const linkEl = $(el).find('a[href]').first();
+          let url = linkEl.attr('href');
+
+          // Google sometimes uses /url?q= redirects, extract the actual URL
+          if (url && url.startsWith('/url?')) {
+            const urlParams = new URLSearchParams(url.substring(5));
+            url = urlParams.get('q') || url;
+          }
+
+          if (title && url && !url.startsWith('/')) {
+            searchResults.push({ title, url });
+          }
+        });
+
+        if (searchResults.length > 0) {
+          console.log(`Successfully extracted ${searchResults.length} results using selector: ${selector}`);
+          break; // Stop trying other selectors
+        }
       }
-    });
+    }
+
+    if (!foundAny) {
+      console.warn(`No elements found with any selector. Saving HTML for inspection...`);
+      await cache.setValue(`debug_html_${platform}`, response.body);
+    }
 
     console.log(`Found ${searchResults.length} potential results for ${platform}.`);
 
