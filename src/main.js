@@ -112,6 +112,12 @@ for (const platform of PLATFORMS) {
       if (!item.url) continue;
 
       const url = normalizeUrl(item.url);
+
+      // Validation: Ensure the URL is actually on the target platform and not a Google link
+      if (url.includes('google.com') || !url.includes(platform)) {
+        continue;
+      }
+
       if (seenUrls.has(url)) continue;
 
       if (!canEmitAnotherResult()) {
@@ -125,10 +131,21 @@ for (const platform of PLATFORMS) {
       try {
         const parsedUrl = new URL(url);
         const hostParts = parsedUrl.hostname.split('.');
-        if (hostParts.length > 2) {
+
+        // Custom logic for different platforms
+        if (platform === 'greenhouse.io') {
+          // greenhouse usually uses subdomains: https://boards.greenhouse.io/vimeo/jobs/...
+          // or path: https://boards.greenhouse.io/vimeo
+          const pathParts = parsedUrl.pathname.split('/').filter(p => p);
+          if (pathParts.length > 0) company = pathParts[0];
+        } else if (platform === 'lever.co') {
+          // lever usually uses path: https://jobs.lever.co/vimeo
+          const pathParts = parsedUrl.pathname.split('/').filter(p => p);
+          if (pathParts.length > 0) company = pathParts[0];
+        } else if (hostParts.length > 2) {
           company = hostParts[0];
-        } else if (parsedUrl.pathname.split('/').length > 1) {
-          company = parsedUrl.pathname.split('/')[1];
+        } else if (parsedUrl.pathname.split('/').filter(p => p).length > 0) {
+          company = parsedUrl.pathname.split('/').filter(p => p)[0];
         }
       } catch (e) { }
 
