@@ -1,0 +1,10 @@
+{
+    "actorSpecification": 1,
+    "name": "job-pulse",
+    "title": "Job Pulse",
+    "description": "Find fresh jobs and apply directly on company websites — no job boards.",
+    "version": "1.0.0",
+    "dockerfile": "./Dockerfile",
+    "input": "./input_schema.json",
+    "output": "./output_schema.json"
+}
