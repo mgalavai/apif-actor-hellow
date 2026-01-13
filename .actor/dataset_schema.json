@@ -1,0 +1,43 @@
+{
+    "actorSpecification": 1,
+    "title": "Job Pulse Dataset",
+    "views": {
+        "overview": {
+            "title": "Job Overview",
+            "transformation": {
+                "fields": [
+                    "title",
+                    "company",
+                    "location",
+                    "applyUrl",
+                    "platform",
+                    "foundAt"
+                ]
+            },
+            "display": {
+                "properties": {
+                    "title": {
+                        "title": "Job Title"
+                    },
+                    "company": {
+                        "title": "Company"
+                    },
+                    "location": {
+                        "title": "Location"
+                    },
+                    "applyUrl": {
+                        "title": "Apply URL",
+                        "format": "url"
+                    },
+                    "platform": {
+                        "title": "Platform"
+                    },
+                    "foundAt": {
+                        "title": "Found At",
+                        "format": "date-time"
+                    }
+                }
+            }
+        }
+    }
+}
