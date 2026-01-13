@@ -1,0 +1,7 @@
+node_modules/
+all_actors.json
+actor_example.json
+abandoned_candidates.json
+fetch_all_actors.js
+insights.js
+.DS_Store

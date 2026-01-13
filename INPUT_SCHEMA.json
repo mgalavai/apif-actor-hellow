@@ -1,31 +1,54 @@
 {
-    "title": "Hello API Wrapper",
+    "title": "Job Pulse",
+    "description": "Find fresh jobs and apply directly on company websites — no job boards.",
     "type": "object",
     "schemaVersion": 1,
     "properties": {
-        "name": {
-            "title": "Name",
+        "query": {
+            "title": "Search Query",
             "type": "string",
-            "description": "Who should we greet?",
-            "default": "world",
+            "description": "What job are you looking for? (e.g., 'frontend engineer')",
             "editor": "textfield"
         },
-        "repeat": {
-            "title": "Repeat",
+        "location": {
+            "title": "Location",
+            "type": "string",
+            "description": "Location (e.g., 'Remote', 'London')",
+            "default": "Remote",
+            "editor": "textfield"
+        },
+        "postedWithinDays": {
+            "title": "Posted Within Days",
             "type": "integer",
-            "description": "How many messages to generate (1–50).",
-            "default": 3,
+            "description": "Filter results for jobs posted in the last X days.",
+            "default": 7,
             "minimum": 1,
-            "maximum": 50,
             "editor": "number"
         },
-        "echoInput": {
-            "title": "Echo input",
+        "maxResultsPerSource": {
+            "title": "Max Results Per Source",
+            "type": "integer",
+            "description": "How many results to fetch from each platform (higher = slower).",
+            "default": 20,
+            "minimum": 1,
+            "editor": "number"
+        },
+        "forceFresh": {
+            "title": "Force Fresh",
             "type": "boolean",
-            "description": "Include full input in each output row (useful for debugging).",
+            "description": "Bypass the cache and perform new searches.",
             "default": false,
             "editor": "checkbox"
+        },
+        "country": {
+            "title": "Country",
+            "type": "string",
+            "description": "Country code for search (e.g., 'US', 'GB')",
+            "default": "US",
+            "editor": "textfield"
         }
     },
-    "required": []
+    "required": [
+        "query"
+    ]
 }

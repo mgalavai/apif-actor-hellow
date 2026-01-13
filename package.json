@@ -1,9 +1,10 @@
 {
-  "name": "hello-api-wrapper",
+  "name": "job-pulse",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "apify": "^3.0.0"
+    "apify": "^3.0.0",
+    "crypto-js": "^4.2.0"
   },
   "scripts": {
     "start": "node src/main.js"
