@@ -5,3 +5,7 @@ abandoned_candidates.json
 fetch_all_actors.js
 insights.js
 .DS_Store
+
+# Local discovery scripts
+discover-deel-boards.js
+deel_boards_found.txt
