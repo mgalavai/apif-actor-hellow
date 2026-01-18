@@ -8,6 +8,7 @@
             "title": "Search Query",
             "type": "string",
             "description": "What job are you looking for? (e.g., 'frontend engineer')",
+            "default": "software engineer",
             "editor": "textfield"
         },
         "location": {
